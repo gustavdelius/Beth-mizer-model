@@ -63,8 +63,8 @@ w <- w(params_double)
 
 # calculate individual growth rate
 E_growth <- getEGrowth(params_double)["Target species", , drop = TRUE]
-# E_growth is already the biomass growth rate of an individual
-flux <- E_growth * N
+gr <- w * E_growth
+flux <- gr * N
 
 
 plot_data <- data.frame(
