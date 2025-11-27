@@ -84,6 +84,8 @@ flux_plot <- ggplot(plot_data,
     title = "Flux over increasing weight of fish") +
   theme_classic()
 
+flux_plot
+
 ggsave("figures/flux_plot.png",
        plot = flux_plot,
        device = "png",
@@ -91,3 +93,54 @@ ggsave("figures/flux_plot.png",
        height = 6,
        units = "in",
        dpi = 300)
+
+# On log-log axes this looks nicer:
+# plot figure
+flux_plot <- ggplot(plot_data, 
+                    aes(x = Weight, y = Flux)) +
+  geom_smooth() +
+  scale_x_log10() + 
+  scale_y_log10() +
+  labs(
+    x = paste0("Weight (g)"),
+    y = paste0("Flux (g/year)"),
+    title = "Flux over increasing weight of fish") +
+  theme_classic()
+
+flux_plot
+
+# Make local change to replenishment rate
+
+# Current rate
+rr <- resource_rate(params_double)
+plot_data <- data.frame(
+  Weight = params_double@w_full,
+  rr = rr
+)
+
+rr_plot <- ggplot(plot_data, 
+                    aes(x = Weight, y = rr)) +
+  geom_smooth() +
+  scale_x_log10() + 
+  scale_y_log10() +
+  theme_classic()
+rr_plot
+
+w_full <- w_full(params_double)
+w_full[150:180]
+rr[150:180] <- rr[150:180] / 1000
+
+plot_data <- data.frame(
+  Weight = params_double@w_full,
+  rr = rr
+)
+
+rr_plot <- ggplot(plot_data, 
+                  aes(x = Weight, y = rr)) +
+  geom_smooth() +
+  scale_x_log10() + 
+  scale_y_log10() +
+  theme_classic()
+rr_plot
+
+resource_rate(params_double) <- rr
