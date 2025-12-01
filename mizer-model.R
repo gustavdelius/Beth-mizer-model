@@ -7,23 +7,24 @@ library(tidyverse)
 
 # Setting parameters ------------------------------------------------------
 
-# set parameters as a single species model
+# Set parameters as a single species model
 params_initial <- newSingleSpeciesParams()
 
-# parameters with a reduced resource level
+# Parameters with a reduced resource level
 params_rr <- setResource(params_initial,
-                      resource_dynamics = "resource_semichemostat",
-                      resource_level = 0.1)
+                      resource_dynamics = "resource_semichemostat")
 
 
-# parameters with initial biomass doubled and initial resources halved
+# Parameters with initial biomass doubled and initial resources halved
 params_double <- params_rr
+params_double <- setResource(params_double,
+                             resource_level = 0.1)
 initialN(params_double) <- 2*initialN(params_double)
 initialNResource(params_double) <- initialNResource(params_double)/2
 
 # Fishing gear ------------------------------------------------------------
 
-# set up fishing gear using sigmoid_weight() selectivity function
+# Set up fishing gear using sigmoid_weight() selectivity function
 
 gear_params(params_double) <- data.frame(
   gear = "gear",
@@ -39,15 +40,15 @@ gear_params(params_double)
 
 # Simulation -------------------------------------------------
 
-# simulate biomass density when initial biomass is doubled and resource level is reduced
-# increase effort for increased fishing
+# Simulate biomass density when initial biomass is doubled and initial resources
+# are reduced
 sim_double <- project(params_double, t_max = 15, effort = 1)
 animateSpectra(sim_double, total = TRUE, power = 2, 
                ylim = c(1e-8, NA), wlim = c(1e-3, NA))
 
-# shows biomass level oscillating --> predator prey relationship
+# Shows biomass level oscillating --> predator prey relationship
 
-# extract yield over time dependent on the fishing gear
+# Extract yield over time dependent on the fishing gear
 getYieldGear(sim_double)
 plotYieldGear(sim_double)
 
@@ -55,25 +56,25 @@ plotYieldGear(sim_double)
 # Figures -----------------------------------------------------------------
 
 
-# figure showing flux over increasing biomass density
+# Figure showing flux over increasing biomass density
 
 # Extract weight and count number
 N <- finalN(sim_double)["Target species", , drop = TRUE]
 w <- w(params_double)
 
-# calculate individual growth rate
+# Calculate individual growth rate
 E_growth <- getEGrowth(params_double)["Target species", , drop = TRUE]
 gr <- w * E_growth
 flux <- gr * N
 
 
-plot_data <- data.frame(
+flux_data <- data.frame(
   Weight = w,
   Flux = flux
 )
 
-# plot figure
-flux_plot <- ggplot(plot_data, 
+# Plot figure
+flux_plot <- ggplot(flux_data, 
        aes(x = Weight, y = Flux)) +
   geom_smooth() +
   scale_x_continuous(expand = c(0, 0), limits = c(0,105)) + 
@@ -94,9 +95,9 @@ ggsave("figures/flux_plot.png",
        units = "in",
        dpi = 300)
 
-# On log-log axes this looks nicer:
-# plot figure
-flux_plot <- ggplot(plot_data, 
+
+# Plot flux on a log-log axis
+flux_plot <- ggplot(flux_data, 
                     aes(x = Weight, y = Flux)) +
   geom_smooth() +
   scale_x_log10() + 
@@ -109,33 +110,58 @@ flux_plot <- ggplot(plot_data,
 
 flux_plot
 
-# Make local change to replenishment rate
+ggsave("figures/flux_plot_with_fishing.png",
+       plot = flux_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       dpi = 300)
 
-# Current rate
-rr <- resource_rate(params_double)
-plot_data <- data.frame(
-  Weight = params_double@w_full,
-  rr = rr
-)
 
-rr_plot <- ggplot(plot_data, 
-                    aes(x = Weight, y = rr)) +
+
+# Make local reductions in resource replenishment rate and resource capacity
+
+# Calculate flux
+sim_rr <- project(params_rr, t_max = 15, effort = 1)
+N <- finalN(sim_rr)["Target species", , drop = TRUE]
+w <- w(params_rr)
+
+E_growth <- getEGrowth(params_rr)["Target species", , drop = TRUE]
+gr <- w * E_growth
+flux <- gr * N
+
+
+# Plot flux before local reductions (without fishing gear)
+initial_flux_data <- data.frame(Weight = w, 
+                             Flux = flux)
+initial_flux_plot <- ggplot(initial_flux_data,
+                         aes(x = Weight, y = Flux)) +
   geom_smooth() +
-  scale_x_log10() + 
+  scale_x_log10() +
   scale_y_log10() +
+  labs(
+    x = paste0("Weight (g)"),
+    y = paste0("Flux (g/year)"),
+    title = "Flux over increasing weight of fish") +
   theme_classic()
-rr_plot
+initial_flux_plot
 
-w_full <- w_full(params_double)
-w_full[150:180]
-rr[150:180] <- rr[150:180] / 1000
 
-plot_data <- data.frame(
-  Weight = params_double@w_full,
+# Reduce rr
+rr <- resource_rate(params_rr)
+w_full <- w_full(params_rr)
+w_full[180:240]
+rr[180:240] <- rr[180:240] / 10000000
+
+
+# Plot resource rate against weight to check reduction
+rr_data <- data.frame(
+  Weight = params_rr@w_full,
   rr = rr
 )
 
-rr_plot <- ggplot(plot_data, 
+rr_plot <- ggplot(rr_data, 
                   aes(x = Weight, y = rr)) +
   geom_smooth() +
   scale_x_log10() + 
@@ -143,4 +169,74 @@ rr_plot <- ggplot(plot_data,
   theme_classic()
 rr_plot
 
-resource_rate(params_double) <- rr
+params_reduced <- setResource(params_rr,
+                                   resource_rate = rr)
+
+# Reduce resource capacity
+rc <- resource_capacity(params_reduced)
+w_full[180:240]
+rc[180:240] <- rc[180:240] / 5000
+
+# Plot resource capacity over weights to see reduction
+rc_data <- data.frame(
+  Weight = params_rr@w_full,
+  rc = rc
+)
+
+rc_plot <- ggplot(rc_data, 
+                  aes(x = Weight, y = rc)) +
+  geom_smooth() +
+  scale_x_log10() + 
+  scale_y_log10() +
+  theme_classic()
+rc_plot
+
+initialN(params_reduced) <- 2*initialN(params_reduced)
+initialNResource(params_reduced) <- initialNResource(params_reduced)/2
+params_reduced <- setResource(params_reduced,
+                                   resource_capacity = rc)
+
+sim_reduced <- project(params_reduced, t_max = 15, effort = 1)
+
+
+# Calculate new flux
+N_reduced <- finalN(sim_reduced)["Target species", , drop = TRUE]
+
+E_growth_reduced <- getEGrowth(params_reduced)["Target species", , drop = TRUE]
+grr <- w * E_growth_reduced
+flux_reduced <- grr * N_reduced
+
+
+reduced_flux_data <- data.frame(Weight = w, 
+                             Flux = flux_reduced)
+
+reduced_flux_plot <- ggplot(reduced_flux_data,
+                         aes(x = Weight, y = Flux)) +
+  geom_smooth() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = paste0("Weight (g)"),
+    y = paste0("Flux (g/year)"),
+    title = "Flux with reduced resource replenishment rate and resource capacity") +
+  theme_classic()
+
+initial_flux_plot
+reduced_flux_plot
+
+# Save plots
+ggsave("figures/flux_plot_initial.png",
+       plot = initial_flux_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       dpi = 300)
+
+ggsave("figures/flux_plot_reduced.png",
+       plot = reduced_flux_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       dpi = 300)
