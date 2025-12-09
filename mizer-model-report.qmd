@@ -8,7 +8,7 @@ prefer-html: true
 
 ## Loading library
 
-Load the packages required to design mizer model and produce figures
+Load the packages required to design mizer model and produce figures.
 
 ```{r}
 #| message: false
@@ -208,4 +208,29 @@ reduced_flux_plot <- ggplot(reduced_flux_data,
   theme_classic()
 
 reduced_flux_plot
+```
+
+## Extract yield
+
+```{r}
+getYieldGear(sim_reduced)
+plotYieldGear(sim_reduced)
+```
+
+## Plot growth rate against weight
+
+```{r}
+growth_data <- data.frame(growth = E_growth_reduced,
+                          weight = w)
+growth_plot <- ggplot(growth_data,
+       aes(x = weight,
+           y = growth)) +
+  geom_smooth() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(x = paste0("Weight (g)"),
+       y = paste0("Growth Rate (g/year)"),
+       title = "Growth rate of fish across increasing size classes") +
+  theme_classic()
+growth_plot
 ```

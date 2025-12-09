@@ -266,3 +266,30 @@ ggsave("figures/flux_plot_reduced.png",
        height = 6,
        units = "in",
        dpi = 300)
+
+
+## yield graphs
+getYieldGear(sim_reduced)
+plotYieldGear(sim_reduced)
+
+## growth rate plot
+growth_data <- data.frame(growth = E_growth_reduced,
+                          weight = w)
+growth_plot <- ggplot(growth_data,
+       aes(x = weight,
+           y = growth)) +
+  geom_smooth() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(x = paste0("Weight (g)"),
+       y = paste0("Growth Rate (g/year)"),
+       title = "Growth rate of fish across increasing size classes") +
+  theme_classic()
+
+ggsave("figures/growth_rate_plot.png",
+       plot = growth_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       dpi = 300)
